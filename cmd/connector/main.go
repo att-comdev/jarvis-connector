@@ -26,29 +26,39 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
-var gerritURL string
-var eventListenerURL string
+var (
+	// GerritURL is the URL of the gerrit instance
+	GerritURL string
+	// EventListenerURL is the URL of the tekton eventlistener for jarvis
+	EventListenerURL string
+	register         bool
+	update           bool
+	list             bool
+	authFile         string
+	repo             string
+	prefix           string
+)
 
 func main() {
-	gerritURL := flag.String("gerrit", "", "URL to gerrit host")
-	eventListenerURL := flag.String("event_listener", "", "URL of the Tekton EventListener")
-	register := flag.Bool("register", false, "Register the connector with gerrit")
-	update := flag.Bool("update", false, "Update an existing check")
-	list := flag.Bool("list", false, "List pending checks")
-	authFile := flag.String("auth_file", "", "file containing user:password")
-	repo := flag.String("repo", "", "the repository (project) name to apply the checker to.")
-	prefix := flag.String("prefix", "", "the prefix that the checker should use for jobs, this is also used as the job name in gerrit.")
+	flag.StringVar(&GerritURL, "gerrit", "", "URL to gerrit host")
+	flag.StringVar(&EventListenerURL, "event_listener", "", "URL of the Tekton EventListener")
+	flag.BoolVar(&register, "register", false, "Register the connector with gerrit")
+	flag.BoolVar(&update, "update", false, "Update an existing check")
+	flag.BoolVar(&list, "list", false, "List pending checks")
+	flag.StringVar(&authFile, "auth_file", "", "file containing user:password")
+	flag.StringVar(&repo, "repo", "", "the repository (project) name to apply the checker to.")
+	flag.StringVar(&prefix, "prefix", "", "the prefix that the checker should use for jobs, this is also used as the job name in gerrit.")
 	flag.Parse()
-	if *gerritURL == "" {
+	if GerritURL == "" {
 		log.Fatal("must set --gerrit")
 	}
 
-	u, err := url.Parse(*gerritURL)
+	u, err := url.Parse(GerritURL)
 	if err != nil {
 		log.Fatalf("url.Parse: %v", err)
 	}
 
-	if *authFile == "" {
+	if authFile == "" {
 		log.Fatal("must set --auth_file")
 	}
 
@@ -56,8 +66,8 @@ func main() {
 
 	g.UserAgent = "JarvisConnector"
 
-	if *authFile != "" {
-		content, err := ioutil.ReadFile(*authFile)
+	if authFile != "" {
+		content, err := ioutil.ReadFile(authFile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -76,7 +86,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if *list {
+	if list {
 		if out, err := gc.ListCheckers(); err != nil {
 			log.Fatalf("List: %v", err)
 		} else {
@@ -90,27 +100,27 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *register || *update {
-		if *repo == "" {
+	if register || update {
+		if repo == "" {
 			log.Fatalf("must set --repo")
 		}
 
-		if *prefix == "" {
+		if prefix == "" {
 			log.Fatalf("must set --prefix")
 		}
 
-		ch, err := gc.PostChecker(*repo, *prefix, *update)
+		ch, err := gc.PostChecker(repo, prefix, update)
 		if err != nil {
 			log.Fatalf("CreateChecker: %v", err)
 		}
 		log.Printf("CreateChecker result: %v", ch)
 		os.Exit(0)
 	} else {
-		if *eventListenerURL == "" {
+		if EventListenerURL == "" {
 			log.Fatal("must set --event_listener")
 		}
 
-		_, err = url.Parse(*eventListenerURL)
+		_, err = url.Parse(EventListenerURL)
 		if err != nil {
 			log.Fatalf("url.Parse: %v", err)
 		}

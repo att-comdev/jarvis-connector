@@ -146,7 +146,7 @@ func (c *gerritChecker) checkChange(uuid string, repository string, changeID str
 	log.Printf("checkChange(%s, %d, %q)", changeID, psID, prefix)
 
 	data := TektonListenerPayload{
-		RepoRoot:       gerritURL,
+		RepoRoot:       GerritURL,
 		Project:        repository,
 		ChangeNumber:   changeID,
 		PatchSetNumber: psID,
@@ -158,7 +158,9 @@ func (c *gerritChecker) checkChange(uuid string, repository string, changeID str
 	}
 	body := bytes.NewReader(payloadBytes)
 
-	req, err := http.NewRequest("POST", eventListenerURL, body)
+	log.Printf("body: %s", body)
+
+	req, err := http.NewRequest("POST", EventListenerURL, body)
 	if err != nil {
 		log.Fatal(err)
 	}
