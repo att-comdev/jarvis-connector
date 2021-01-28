@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -49,9 +50,9 @@ type CheckerInput struct {
 
 // Gerrit doesn't use the format with "T" in the middle, so must
 // define a custom serializer.
-
 const timeLayout = "2006-01-02 15:04:05.000000000"
 
+// Timestamp Class and Marshal/Unmarshal functions
 type Timestamp time.Time
 
 func (ts *Timestamp) String() string {
@@ -78,6 +79,7 @@ func (ts *Timestamp) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// CheckerInfo and string conversion function
 type CheckerInfo struct {
 	UUID        string `json:"uuid"`
 	Name        string
@@ -92,29 +94,27 @@ type CheckerInfo struct {
 }
 
 func (info *CheckerInfo) String() string {
-	out, _ := json.Marshal(info)
+	out, err := json.Marshal(info)
+	if err != nil {
+		log.Printf("Error: JSON marshalling failure")
+	}
 	return string(out)
 }
 
-// Unmarshal unmarshals Gerrit JSON, stripping the security prefix.
-func Unmarshal(content []byte, dest interface{}) error {
-	if !bytes.HasPrefix(content, jsonPrefix) {
-		if len(content) > 100 {
-			content = content[:100]
-		}
-		bodyStr := string(content)
-
-		return fmt.Errorf("prefix %q not found, got %s", jsonPrefix, bodyStr)
-	}
-
-	content = bytes.TrimPrefix(content, []byte(jsonPrefix))
-	return json.Unmarshal(content, dest)
-}
-
+// PendingCheckInfo and string conversion function
 type PendingCheckInfo struct {
 	State string
 }
 
+func (info *PendingCheckInfo) String() string {
+	out, err := json.Marshal(info)
+	if err != nil {
+		log.Printf("Error: JSON marshalling failure")
+	}
+	return string(out)
+}
+
+// CheckablePatchSetInfo and string conversion function
 type CheckablePatchSetInfo struct {
 	Repository   string
 	ChangeNumber int `json:"change_number"`
@@ -122,18 +122,17 @@ type CheckablePatchSetInfo struct {
 }
 
 func (in *CheckablePatchSetInfo) String() string {
-	out, _ := json.Marshal(in)
+	out, err := json.Marshal(in)
+	if err != nil {
+		log.Printf("Error: JSON marshalling failure")
+	}
 	return string(out)
 }
 
+// PendingChecksInfo struct definition
 type PendingChecksInfo struct {
 	PatchSet      *CheckablePatchSetInfo       `json:"patch_set"`
 	PendingChecks map[string]*PendingCheckInfo `json:"pending_checks"`
-}
-
-func (info *PendingCheckInfo) String() string {
-	out, _ := json.Marshal(info)
-	return string(out)
 }
 
 type CheckInput struct {
@@ -145,10 +144,14 @@ type CheckInput struct {
 }
 
 func (in *CheckInput) String() string {
-	out, _ := json.Marshal(in)
+	out, err := json.Marshal(in)
+	if err != nil {
+		log.Printf("Error: JSON marshalling failure")
+	}
 	return string(out)
 }
 
+// CheckInfo struct definition
 type CheckInfo struct {
 	Repository    string    `json:"repository"`
 	ChangeNumber  int       `json:"change_number"`
@@ -163,4 +166,19 @@ type CheckInfo struct {
 	CheckerName   string    `json:"checker_name"`
 	CheckerStatus string    `json:"checker_status"`
 	Blocking      []string  `json:"blocking"`
+}
+
+// Unmarshal unmarshalls Gerrit JSON, stripping the security prefix.
+func Unmarshal(content []byte, dest interface{}) error {
+	if !bytes.HasPrefix(content, jsonPrefix) {
+		if len(content) > 100 {
+			content = content[:100]
+		}
+		bodyStr := string(content)
+
+		return fmt.Errorf("prefix %q not found, got %s", jsonPrefix, bodyStr)
+	}
+
+	content = bytes.TrimPrefix(content, jsonPrefix)
+	return json.Unmarshal(content, dest)
 }

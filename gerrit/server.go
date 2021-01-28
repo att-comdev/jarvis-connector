@@ -62,7 +62,7 @@ func NewBasicAuth(who string) *BasicAuth {
 }
 
 func (b *BasicAuth) Authenticate(req *http.Request) error {
-	req.Header.Set("Authorization", "Basic "+string(b.EncodedBasicAuth))
+	req.Header.Set("Authorization", "Basic " + b.EncodedBasicAuth)
 	return nil
 }
 
@@ -120,7 +120,7 @@ func (g *Server) Get(u *url.URL) ([]byte, error) {
 		return nil, err
 	}
 	if rep.StatusCode/100 != 2 {
-		return nil, fmt.Errorf("Get %s: status %d", u.String(), rep.StatusCode)
+		return nil, fmt.Errorf("get %s: status %d", u.String(), rep.StatusCode)
 	}
 
 	defer rep.Body.Close()
@@ -152,15 +152,15 @@ func (g *Server) PostPath(p string, contentType string, content []byte) ([]byte,
 	return ioutil.ReadAll(rep.Body)
 }
 
-func (s *Server) PendingChecksByScheme(scheme string) ([]*PendingChecksInfo, error) {
-	u := s.URL
+func (g *Server) PendingChecksByScheme(scheme string) ([]*PendingChecksInfo, error) { //nolint
+	u := g.URL
 
 	// The trailing '/' handling is really annoying.
 	u.Path = path.Join(u.Path, "a/plugins/checks/checks.pending/") + "/"
 
 	q := "scheme:" + scheme
 	u.RawQuery = "query=" + q
-	content, err := s.Get(&u)
+	content, err := g.Get(&u)
 	if err != nil {
 		return nil, err
 	}
@@ -174,8 +174,9 @@ func (s *Server) PendingChecksByScheme(scheme string) ([]*PendingChecksInfo, err
 }
 
 // PendingChecks returns the checks pending for the given checker.
-func (s *Server) PendingChecks(checkerUUID string) ([]*PendingChecksInfo, error) {
-	u := s.URL
+func (g *Server) PendingChecks(checkerUUID string) ([]*PendingChecksInfo, error) { //nolint
+	u := g.URL
+
 
 	// The trailing '/' handling is really annoying.
 	u.Path = path.Join(u.Path, "a/plugins/checks/checks.pending/") + "/"
@@ -183,7 +184,7 @@ func (s *Server) PendingChecks(checkerUUID string) ([]*PendingChecksInfo, error)
 	q := "checker:" + checkerUUID
 	u.RawQuery = "query=" + url.QueryEscape(q)
 
-	content, err := s.Get(&u)
+	content, err := g.Get(&u)
 	if err != nil {
 		return nil, err
 	}
@@ -197,13 +198,14 @@ func (s *Server) PendingChecks(checkerUUID string) ([]*PendingChecksInfo, error)
 }
 
 // PostCheck posts a single check result onto a change.
-func (s *Server) PostCheck(changeID string, psID int, input *CheckInput) (*CheckInfo, error) {
+func (g *Server) PostCheck(changeID string, psID int, input *CheckInput) (*CheckInfo, error) {
+
 	body, err := json.Marshal(input)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := s.PostPath(fmt.Sprintf("a/changes/%s/revisions/%d/checks/", changeID, psID),
+	res, err := g.PostPath(fmt.Sprintf("a/changes/%s/revisions/%d/checks/", changeID, psID),
 		"application/json", body)
 	if err != nil {
 		return nil, err
