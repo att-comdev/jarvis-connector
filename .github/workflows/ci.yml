@@ -28,5 +28,5 @@ jobs:
         with:
           push: false
           tags: |
-            quay.io/attcomdev/jarvis-connector:${{ steps.sha.outputs.sha_short }}
+            quay.io/dannymassa/testrepo:${{ steps.sha.outputs.sha_short }}
           labels: ${{ steps.docker_meta.outputs.labels }}
