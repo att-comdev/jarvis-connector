@@ -91,7 +91,7 @@ func (gc *gerritChecker) PostChecker(repo, prefix string, update bool, blocking 
 	in := gerrit.CheckerInput{
 		UUID:        uuid,
 		Name:        prefix,
-		Description: "check source code formatting.",
+		Description: "New Checker that blocks.",
 		URL:         "",
 		Repository:  repo,
 		Status:      "ENABLED",
@@ -100,6 +100,7 @@ func (gc *gerritChecker) PostChecker(repo, prefix string, update bool, blocking 
 	}
 
 	body, err := json.Marshal(&in)
+	log.Printf(string(body))
 	if err != nil {
 		return nil, err
 	}
