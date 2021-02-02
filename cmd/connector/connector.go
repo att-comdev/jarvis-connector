@@ -80,13 +80,14 @@ func (gc *gerritChecker) ListCheckers() ([]*gerrit.CheckerInfo, error) {
 // the given repo, for the given prefix.
 func (gc *gerritChecker) PostChecker(repo, prefix string, update bool, blocking bool) (*gerrit.CheckerInfo, error) {
 	hash := sha1.New()
-	hash.Write([]byte(repo))
+	hash.Write([]byte(repo)) //nolint
 	var blockingList []string
 
 	// If the blocking flag is set to true, register the checker as a blocking checker
 	if blocking {
 		blockingList = append(blockingList, "STATE_NOT_PASSING")
 	}
+
 
 	uuid := fmt.Sprintf("%s:%s-%x", checkerScheme, prefix, hash.Sum(nil))
 	in := gerrit.CheckerInput{
@@ -165,8 +166,8 @@ func (c *gerritChecker) checkChange(uuid string, repository string, changeID str
 	}
 	body := bytes.NewReader(payloadBytes)
 
-	buf := new(strings.Builder)
-	_, _ = io.Copy(buf, body) //nolint
+	buf := new(bytes.Buffer)
+	_, _ = buf.ReadFrom(body) //nolint
 	log.Printf("body: %s", buf.String())
 
 	req, err := http.NewRequest("POST", EventListenerURL, body)
@@ -183,9 +184,9 @@ func (c *gerritChecker) checkChange(uuid string, repository string, changeID str
 	defer resp.Body.Close()
 
 	var msgs []string
-	msgs = append(msgs, fmt.Sprintf("%s", "Job has been submitted to tekton"))
-	var details string
-	details = ""
+	msgs = append(msgs, fmt.Sprintf("%s", "Job has been submitted to tekton")) //nolint
+	var details string //nolint
+	details = "" //nolint
 	return msgs, details, nil
 }
 

@@ -1,4 +1,4 @@
-name: CI Check
+name: CI Checks
 
 on:
   pull_request:
@@ -28,9 +28,38 @@ jobs:
         with:
           push: false
           tags: |
-            quay.io/attcomdev/jarvis-connector:${{ steps.sha.outputs.sha7 }}
-          build-args: |
-            REVISION=${{ github.sha }}
-            SHORT_SHA=${{ steps.sha.outputs.sha7 }}
-            CREATED=${{ steps.time.outputs.time }}
-            VERSION=$${{ github.ref }}
+            quay.io/attcomdev/jarvis-connector:${{ steps.sha.outputs.sha_short }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.33
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.13
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+          if [ -f Gopkg.toml ]; then
+              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+              dep ensure
+          fi
+      - name: Build
+        run: go build -v ./...
+      - name: Test
+        run: go test -v ./...
