@@ -34,20 +34,22 @@ var (
 	register         bool
 	update           bool
 	list             bool
+	blocking         bool
 	authFile         string
 	repo             string
 	prefix           string
 )
 
-func main() {
+func main() { //nolint
 	flag.StringVar(&GerritURL, "gerrit", "", "URL to gerrit host")
 	flag.StringVar(&EventListenerURL, "event_listener", "", "URL of the Tekton EventListener")
 	flag.BoolVar(&register, "register", false, "Register the connector with gerrit")
 	flag.BoolVar(&update, "update", false, "Update an existing check")
 	flag.BoolVar(&list, "list", false, "List pending checks")
+	flag.BoolVar(&blocking, "blocking", true, "check should block submission in event of failure")
 	flag.StringVar(&authFile, "auth_file", "", "file containing user:password")
 	flag.StringVar(&repo, "repo", "", "the repository (project) name to apply the checker to.")
-	flag.StringVar(&prefix, "prefix", "", "the prefix that the checker should use for jobs, this is also used as the job name in gerrit.")
+	flag.StringVar(&prefix, "prefix", "", "the prefix that the checker should use for jobs, this is also used as the job name in gerrit.")  //nolint
 	flag.Parse()
 	if GerritURL == "" {
 		log.Fatal("must set --gerrit")
@@ -67,7 +69,7 @@ func main() {
 	g.UserAgent = "JarvisConnector"
 
 	if authFile != "" {
-		content, err := ioutil.ReadFile(authFile)
+		content, err := ioutil.ReadFile(authFile)  //nolint
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -77,7 +79,7 @@ func main() {
 	// Do a GET first to complete any cookie dance, because POST
 	// aren't redirected properly. Also, this avoids spamming logs with
 	// failure messages.
-	if _, err := g.GetPath("a/accounts/self"); err != nil {
+	if _, err := g.GetPath("a/accounts/self"); err != nil {  //nolint
 		log.Fatalf("accounts/self: %v", err)
 	}
 
@@ -87,11 +89,11 @@ func main() {
 	}
 
 	if list {
-		if out, err := gc.ListCheckers(); err != nil {
+		if out, err := gc.ListCheckers(); err != nil {  //nolint
 			log.Fatalf("List: %v", err)
 		} else {
 			for _, ch := range out {
-				json, _ := json.Marshal(ch)
+				json, _ := json.Marshal(ch) //nolint
 				os.Stdout.Write(json)
 				os.Stdout.Write([]byte{'\n'})
 			}
@@ -109,7 +111,8 @@ func main() {
 			log.Fatalf("must set --prefix")
 		}
 
-		ch, err := gc.PostChecker(repo, prefix, update)
+		ch, err := gc.PostChecker(repo, prefix, update, blocking) //nolint
+
 		if err != nil {
 			log.Fatalf("CreateChecker: %v", err)
 		}
