@@ -17,10 +17,11 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha1"
+	"crypto/sha1" //nolint
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -37,7 +38,7 @@ type gerritChecker struct {
 	todo chan *gerrit.PendingChecksInfo
 }
 
-// TektonListenerPayload to be recieved by trigger
+// TektonListenerPayload to be received by trigger
 type TektonListenerPayload struct {
 	RepoRoot       string `json:"repoRoot"`
 	Project        string `json:"project"`
@@ -78,8 +79,8 @@ func (gc *gerritChecker) ListCheckers() ([]*gerrit.CheckerInfo, error) {
 // PostChecker creates or changes a checker. It sets up a checker on
 // the given repo, for the given prefix.
 func (gc *gerritChecker) PostChecker(repo, prefix string, update bool) (*gerrit.CheckerInfo, error) {
-	hash := sha1.New()
-	hash.Write([]byte(repo))
+	hash := sha1.New() //nolint
+	hash.Write([]byte(repo)) //nolint
 
 	uuid := fmt.Sprintf("%s:%s-%x", checkerScheme, prefix, hash.Sum(nil))
 	in := gerrit.CheckerInput{
@@ -127,7 +128,7 @@ func checkerPrefix(uuid string) (string, bool) {
 
 // NewGerritChecker creates a server that periodically checks a gerrit
 // server for pending checks.
-func NewGerritChecker(server *gerrit.Server) (*gerritChecker, error) {
+func NewGerritChecker(server *gerrit.Server) (*gerritChecker, error) { //nolint
 	gc := &gerritChecker{
 		server: server,
 		todo:   make(chan *gerrit.PendingChecksInfo, 5),
@@ -142,7 +143,7 @@ var errIrrelevant = errors.New("irrelevant")
 
 // checkChange checks a (change, patchset) for correct formatting in the given prefix. It returns
 // a list of complaints, or the errIrrelevant error if there is nothing to do.
-func (c *gerritChecker) checkChange(uuid string, repository string, changeID string, psID int, prefix string) ([]string, string, error) {
+func (c *gerritChecker) checkChange(uuid string, repository string, changeID string, psID int, prefix string) ([]string, string, error) { //nolint
 	log.Printf("checkChange(%s, %d, %q)", changeID, psID, prefix)
 
 	data := TektonListenerPayload{
@@ -158,7 +159,9 @@ func (c *gerritChecker) checkChange(uuid string, repository string, changeID str
 	}
 	body := bytes.NewReader(payloadBytes)
 
-	log.Printf("body: %s", body)
+	buf := new(strings.Builder)
+	_, _ = io.Copy(buf, body) //nolint
+	log.Printf("body: %s", buf.String())
 
 	req, err := http.NewRequest("POST", EventListenerURL, body)
 	if err != nil {
@@ -182,7 +185,7 @@ func (c *gerritChecker) checkChange(uuid string, repository string, changeID str
 
 // pendingLoop periodically contacts gerrit to find new checks to
 // execute. It should be executed in a goroutine.
-func (c *gerritChecker) pendingLoop() {
+func (c *gerritChecker) pendingLoop() { //nolint
 	for {
 		// TODO: real rate limiting.
 		time.Sleep(10 * time.Second)
@@ -235,7 +238,7 @@ func (s status) String() string {
 		statusIrrelevant: "NOT_RELEVANT",
 		statusRunning:    "SCHEDULED",
 		statusFail:       "FAILED",
-		// remember - success here, simply means we have sucessfully informed the event listener of the job...
+		// remember - success here, simply means we have successfully informed the event listener of the job...
 		statusSuccessful: "SCHEDULED",
 	}[s]
 }
@@ -262,15 +265,15 @@ func (gc *gerritChecker) executeCheck(pc *gerrit.PendingChecksInfo) error {
 			return err
 		}
 
-		var status status
+		var status status //nolint
 		msg := ""
 		url := ""
 		lang, ok := checkerPrefix(uuid)
 		if !ok {
 			return fmt.Errorf("uuid %q had unknown prefix", uuid)
-		} else {
+		} else { //nolint
 			msgs, details, err := gc.checkChange(uuid, repository, changeID, psID, lang)
-			if err == errIrrelevant {
+			if err == errIrrelevant { //nolint
 				status = statusIrrelevant
 			} else if err != nil {
 				status = statusFail
