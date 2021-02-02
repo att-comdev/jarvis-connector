@@ -78,7 +78,7 @@ func (gc *gerritChecker) ListCheckers() ([]*gerrit.CheckerInfo, error) {
 // PostChecker creates or changes a checker. It sets up a checker on
 // the given repo, for the given prefix.
 func (gc *gerritChecker) PostChecker(repo, prefix string, update bool, blocking bool) (*gerrit.CheckerInfo, error) {
-	hash := sha1.New()
+	hash := sha1.New()       //nolint
 	hash.Write([]byte(repo)) //nolint
 	var blockingList []string
 
@@ -86,7 +86,6 @@ func (gc *gerritChecker) PostChecker(repo, prefix string, update bool, blocking 
 	if blocking {
 		blockingList = append(blockingList, "STATE_NOT_PASSING")
 	}
-
 
 	uuid := fmt.Sprintf("%s:%s-%x", checkerScheme, prefix, hash.Sum(nil))
 	in := gerrit.CheckerInput{
@@ -184,8 +183,8 @@ func (c *gerritChecker) checkChange(uuid string, repository string, changeID str
 
 	var msgs []string
 	msgs = append(msgs, fmt.Sprintf("%s", "Job has been submitted to tekton")) //nolint
-	var details string //nolint
-	details = "" //nolint
+	var details string                                                         //nolint
+	details = ""                                                               //nolint
 	return msgs, details, nil
 }
 
