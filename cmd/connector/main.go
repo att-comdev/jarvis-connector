@@ -34,6 +34,7 @@ var (
 	register         bool
 	update           bool
 	list             bool
+	blocking         bool
 	authFile         string
 	repo             string
 	prefix           string
@@ -45,6 +46,7 @@ func main() {
 	flag.BoolVar(&register, "register", false, "Register the connector with gerrit")
 	flag.BoolVar(&update, "update", false, "Update an existing check")
 	flag.BoolVar(&list, "list", false, "List pending checks")
+	flag.BoolVar(&blocking, "blocking", true, "check should block submission in event of failure")
 	flag.StringVar(&authFile, "auth_file", "", "file containing user:password")
 	flag.StringVar(&repo, "repo", "", "the repository (project) name to apply the checker to.")
 	flag.StringVar(&prefix, "prefix", "", "the prefix that the checker should use for jobs, this is also used as the job name in gerrit.")
@@ -109,7 +111,7 @@ func main() {
 			log.Fatalf("must set --prefix")
 		}
 
-		ch, err := gc.PostChecker(repo, prefix, update)
+		ch, err := gc.PostChecker(repo, prefix, update, blocking)
 		if err != nil {
 			log.Fatalf("CreateChecker: %v", err)
 		}
