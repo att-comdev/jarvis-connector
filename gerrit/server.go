@@ -62,7 +62,7 @@ func NewBasicAuth(who string) *BasicAuth {
 }
 
 func (b *BasicAuth) Authenticate(req *http.Request) error {
-	req.Header.Set("Authorization", "Basic "+string(b.EncodedBasicAuth)) //nolint
+	req.Header.Set("Authorization", "Basic "+string(b.EncodedBasicAuth))
 	return nil
 }
 
@@ -110,7 +110,7 @@ func (g *Server) Do(req *http.Request) (*http.Response, error) {
 }
 
 // Get runs a HTTP GET request on the given URL.
-func (g *Server) Get(u *url.URL) ([]byte, error) { //nolint
+func (g *Server) Get(u *url.URL) ([]byte, error) {
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, err
@@ -152,7 +152,7 @@ func (g *Server) PostPath(p string, contentType string, content []byte) ([]byte,
 	return ioutil.ReadAll(rep.Body)
 }
 
-func (s *Server) PendingChecksByScheme(scheme string) ([]*PendingChecksInfo, error) { //nolint
+func (s *Server) PendingChecksByScheme(scheme string) ([]*PendingChecksInfo, error) {
 	u := s.URL
 
 	// The trailing '/' handling is really annoying.
@@ -174,7 +174,7 @@ func (s *Server) PendingChecksByScheme(scheme string) ([]*PendingChecksInfo, err
 }
 
 // PendingChecks returns the checks pending for the given checker.
-func (s *Server) PendingChecks(checkerUUID string) ([]*PendingChecksInfo, error) { //nolint
+func (s *Server) PendingChecks(checkerUUID string) ([]*PendingChecksInfo, error) {
 	u := s.URL
 
 	// The trailing '/' handling is really annoying.
@@ -197,7 +197,7 @@ func (s *Server) PendingChecks(checkerUUID string) ([]*PendingChecksInfo, error)
 }
 
 // PostCheck posts a single check result onto a change.
-func (s *Server) PostCheck(changeID string, psID int, input *CheckInput) (*CheckInfo, error) { //nolint
+func (s *Server) PostCheck(changeID string, psID int, input *CheckInput) (*CheckInfo, error) {
 	body, err := json.Marshal(input)
 	if err != nil {
 		return nil, err
