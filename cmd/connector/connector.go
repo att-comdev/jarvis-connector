@@ -37,7 +37,7 @@ type gerritChecker struct {
 	todo chan *gerrit.PendingChecksInfo
 }
 
-// TektonListenerPayload to be recieved by trigger
+// TektonListenerPayload to be received by trigger
 type TektonListenerPayload struct {
 	RepoRoot       string `json:"repoRoot"`
 	Project        string `json:"project"`
@@ -77,23 +77,30 @@ func (gc *gerritChecker) ListCheckers() ([]*gerrit.CheckerInfo, error) {
 
 // PostChecker creates or changes a checker. It sets up a checker on
 // the given repo, for the given prefix.
-func (gc *gerritChecker) PostChecker(repo, prefix string, update bool) (*gerrit.CheckerInfo, error) {
+func (gc *gerritChecker) PostChecker(repo, prefix string, update bool, blocking bool) (*gerrit.CheckerInfo, error) {
 	hash := sha1.New()
-	hash.Write([]byte(repo))
+	hash.Write([]byte(repo)) //nolint
+	var blockingList []string
+
+	// If the blocking flag is set to true, register the checker as a blocking checker
+	if blocking {
+		blockingList = append(blockingList, "STATE_NOT_PASSING")
+	}
 
 	uuid := fmt.Sprintf("%s:%s-%x", checkerScheme, prefix, hash.Sum(nil))
 	in := gerrit.CheckerInput{
 		UUID:        uuid,
 		Name:        prefix,
-		Description: "check source code formatting.",
+		Description: "New Checker that blocks.",
 		URL:         "",
 		Repository:  repo,
 		Status:      "ENABLED",
-		Blocking:    []string{},
+		Blocking:    blockingList,
 		Query:       "status:open",
 	}
 
 	body, err := json.Marshal(&in)
+	log.Printf("body: %v", body)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +165,7 @@ func (c *gerritChecker) checkChange(uuid string, repository string, changeID str
 	}
 	body := bytes.NewReader(payloadBytes)
 
-	log.Printf("body: %s", body)
+	log.Printf("body: %v", body)
 
 	req, err := http.NewRequest("POST", EventListenerURL, body)
 	if err != nil {
@@ -174,8 +181,8 @@ func (c *gerritChecker) checkChange(uuid string, repository string, changeID str
 	defer resp.Body.Close()
 
 	var msgs []string
-	msgs = append(msgs, fmt.Sprintf("%s", "Job has been submitted to tekton"))
-	var details string
+	msgs = append(msgs, fmt.Sprintf("%s", "Job has been submitted to tekton")) //nolint
+	var details string //nolint
 	details = ""
 	return msgs, details, nil
 }
@@ -235,7 +242,7 @@ func (s status) String() string {
 		statusIrrelevant: "NOT_RELEVANT",
 		statusRunning:    "SCHEDULED",
 		statusFail:       "FAILED",
-		// remember - success here, simply means we have sucessfully informed the event listener of the job...
+		// remember - success here, simply means we have successfully informed the event listener of the job...
 		statusSuccessful: "SCHEDULED",
 	}[s]
 }
