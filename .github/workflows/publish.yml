@@ -1,5 +1,4 @@
 name: Quay Image Push
-
 on:
   schedule:
     - cron: '0 0 * * 0'
@@ -36,10 +35,10 @@ jobs:
         with:
           push: true
           tags: |
-            quay.io/attcomdev/jarvis-connector:latest
-            quay.io/attcomdev/jarvis-connector:${{ steps.sha.outputs.sha7 }}
+            quay.io/dannymassa/testrepo:latest
+            quay.io/dannymassa/testrepo:${{ steps.sha.outputs.sha7 }}
           build-args: |
             REVISION=${{ github.sha }}
             SHORT_SHA=${{ steps.sha.outputs.sha7 }}
             CREATED=${{ steps.time.outputs.time }}
-            VERSION=${{ github.ref }}
+            VERSION=$${{ github.ref }}

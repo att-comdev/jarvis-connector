@@ -78,12 +78,12 @@ func (gc *gerritChecker) ListCheckers() ([]*gerrit.CheckerInfo, error) {
 // PostChecker creates or changes a checker. It sets up a checker on
 // the given repo, for the given prefix.
 func (gc *gerritChecker) PostChecker(repo, prefix string, update bool, blocking bool) (*gerrit.CheckerInfo, error) {
-	hash := sha1.New()
+	hash := sha1.New()       //nolint
 	hash.Write([]byte(repo)) //nolint
 	var blockingList []string
 
 	// If the blocking flag is set to true, register the checker as a blocking checker
-	if blocking {
+	if blocking == true {
 		blockingList = append(blockingList, "STATE_NOT_PASSING")
 	}
 
