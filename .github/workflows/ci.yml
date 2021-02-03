@@ -1,4 +1,4 @@
-name: CI Check
+name: CI Checks
 
 on:
   pull_request:
@@ -28,7 +28,7 @@ jobs:
         with:
           push: false
           tags: |
-            quay.io/attcomdev/jarvis-connector:${{ steps.sha.outputs.sha7 }}
+            quay.io/dannymassa/testrepo:${{ steps.sha.outputs.sha7 }}
           build-args: |
             REVISION=${{ github.sha }}
             SHORT_SHA=${{ steps.sha.outputs.sha7 }}
