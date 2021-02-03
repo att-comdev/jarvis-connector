@@ -1,5 +1,4 @@
 name: Quay Image Push
-
 on:
   schedule:
     - cron: '0 0 * * 0'
@@ -8,25 +7,21 @@ on:
 
 jobs:
   push_to_registry:
-    name: Push Docker image to Quay.io
+    name: Push Docker image to Quay.io 
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Get short SHA
+      - name: get short SHA
         id: sha
         run: |
-          echo ::set-output name=sha7::$(git rev-parse --short=7 ${{ github.sha }})
-      - name: Get current time
-        id: time
-        run: |
-          echo ::set-output name=time::$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+         echo ::set-output name=sha_short::$(git rev-parse --short=7 ${{ github.sha }})
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-      - name: Login to Quay Container Registry
-        uses: docker/login-action@v1
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1 
         with:
           registry: quay.io
           username: ${{ secrets.QUAY_USERNAME }}
@@ -37,9 +32,4 @@ jobs:
           push: true
           tags: |
             quay.io/attcomdev/jarvis-connector:latest
-            quay.io/attcomdev/jarvis-connector:${{ steps.sha.outputs.sha7 }}
-          build-args: |
-            REVISION=${{ github.sha }}
-            SHORT_SHA=${{ steps.sha.outputs.sha7 }}
-            CREATED=${{ steps.time.outputs.time }}
-            VERSION=${{ github.ref }}
+            quay.io/attcomdev/jarvis-connector:${{ steps.sha.outputs.sha_short }}

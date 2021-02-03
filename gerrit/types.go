@@ -92,7 +92,7 @@ type CheckerInfo struct {
 }
 
 func (info *CheckerInfo) String() string {
-	out, _ := json.Marshal(info) //nolint
+	out, _ := json.Marshal(info)
 	return string(out)
 }
 
@@ -107,7 +107,7 @@ func Unmarshal(content []byte, dest interface{}) error {
 		return fmt.Errorf("prefix %q not found, got %s", jsonPrefix, bodyStr)
 	}
 
-	content = bytes.TrimPrefix(content, []byte(jsonPrefix)) //nolint
+	content = bytes.TrimPrefix(content, []byte(jsonPrefix))
 	return json.Unmarshal(content, dest)
 }
 
@@ -122,7 +122,7 @@ type CheckablePatchSetInfo struct {
 }
 
 func (in *CheckablePatchSetInfo) String() string {
-	out, _ := json.Marshal(in) //nolint
+	out, _ := json.Marshal(in)
 	return string(out)
 }
 
@@ -132,7 +132,7 @@ type PendingChecksInfo struct {
 }
 
 func (info *PendingCheckInfo) String() string {
-	out, _ := json.Marshal(info) //nolint
+	out, _ := json.Marshal(info)
 	return string(out)
 }
 
@@ -145,7 +145,7 @@ type CheckInput struct {
 }
 
 func (in *CheckInput) String() string {
-	out, _ := json.Marshal(in) //nolint
+	out, _ := json.Marshal(in)
 	return string(out)
 }
 
