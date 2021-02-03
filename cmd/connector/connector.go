@@ -83,7 +83,7 @@ func (gc *gerritChecker) PostChecker(repo, prefix string, update bool, blocking 
 	var blockingList []string
 
 	// If the blocking flag is set to true, register the checker as a blocking checker
-	if blocking == true {
+	if blocking {
 		blockingList = append(blockingList, "STATE_NOT_PASSING")
 	}
 
@@ -164,9 +164,6 @@ func (c *gerritChecker) checkChange(uuid string, repository string, changeID str
 		log.Fatal(err)
 	}
 	body := bytes.NewReader(payloadBytes)
-
-	log.Printf("body: %v", body)
-
 	req, err := http.NewRequest("POST", EventListenerURL, body)
 	if err != nil {
 		log.Fatal(err)
