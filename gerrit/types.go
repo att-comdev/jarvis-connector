@@ -96,7 +96,7 @@ func (info *CheckerInfo) String() string {
 	return string(out)
 }
 
-// Unmarshal unmarshals Gerrit JSON, stripping the security prefix.
+// Unmarshal unmarshal Gerrit JSON, stripping the security prefix.
 func Unmarshal(content []byte, dest interface{}) error {
 	if !bytes.HasPrefix(content, jsonPrefix) {
 		if len(content) > 100 {
@@ -107,7 +107,7 @@ func Unmarshal(content []byte, dest interface{}) error {
 		return fmt.Errorf("prefix %q not found, got %s", jsonPrefix, bodyStr)
 	}
 
-	content = bytes.TrimPrefix(content, []byte(jsonPrefix))
+	content = bytes.TrimPrefix(content, jsonPrefix)
 	return json.Unmarshal(content, dest)
 }
 

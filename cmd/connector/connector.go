@@ -83,7 +83,7 @@ func (gc *gerritChecker) PostChecker(repo, prefix string, update bool, blocking 
 	var blockingList []string
 
 	// If the blocking flag is set to true, register the checker as a blocking checker
-	if blocking {
+	if blocking == true {
 		blockingList = append(blockingList, "STATE_NOT_PASSING")
 	}
 
