@@ -40,7 +40,7 @@ var (
 	prefix           string
 )
 
-func main() { //nolint
+func main() {
 	flag.StringVar(&GerritURL, "gerrit", "", "URL to gerrit host")
 	flag.StringVar(&EventListenerURL, "event_listener", "", "URL of the Tekton EventListener")
 	flag.BoolVar(&register, "register", false, "Register the connector with gerrit")
@@ -49,7 +49,7 @@ func main() { //nolint
 	flag.BoolVar(&blocking, "blocking", true, "check should block submission in event of failure")
 	flag.StringVar(&authFile, "auth_file", "", "file containing user:password")
 	flag.StringVar(&repo, "repo", "", "the repository (project) name to apply the checker to.")
-	flag.StringVar(&prefix, "prefix", "", "the prefix that the checker should use for jobs, this is also used as the job name in gerrit.")  //nolint
+	flag.StringVar(&prefix, "prefix", "", "the prefix that the checker should use for jobs, this is also used as the job name in gerrit.")
 	flag.Parse()
 	if GerritURL == "" {
 		log.Fatal("must set --gerrit")
@@ -69,7 +69,7 @@ func main() { //nolint
 	g.UserAgent = "JarvisConnector"
 
 	if authFile != "" {
-		content, err := ioutil.ReadFile(authFile)  //nolint
+		content, err := ioutil.ReadFile(authFile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -79,7 +79,7 @@ func main() { //nolint
 	// Do a GET first to complete any cookie dance, because POST
 	// aren't redirected properly. Also, this avoids spamming logs with
 	// failure messages.
-	if _, err := g.GetPath("a/accounts/self"); err != nil {  //nolint
+	if _, err := g.GetPath("a/accounts/self"); err != nil {
 		log.Fatalf("accounts/self: %v", err)
 	}
 
@@ -89,11 +89,11 @@ func main() { //nolint
 	}
 
 	if list {
-		if out, err := gc.ListCheckers(); err != nil {  //nolint
+		if out, err := gc.ListCheckers(); err != nil {
 			log.Fatalf("List: %v", err)
 		} else {
 			for _, ch := range out {
-				json, _ := json.Marshal(ch) //nolint
+				json, _ := json.Marshal(ch)
 				os.Stdout.Write(json)
 				os.Stdout.Write([]byte{'\n'})
 			}
@@ -112,7 +112,6 @@ func main() { //nolint
 		}
 
 		ch, err := gc.PostChecker(repo, prefix, update, blocking) //nolint
-
 		if err != nil {
 			log.Fatalf("CreateChecker: %v", err)
 		}

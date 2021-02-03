@@ -29,4 +29,8 @@ jobs:
           push: false
           tags: |
             quay.io/dannymassa/testrepo:${{ steps.sha.outputs.sha7 }}
-          labels: ${{ steps.docker_meta.outputs.labels }}
+          build-args: |
+            REVISION=${{ github.sha }}
+            SHORT_SHA=${{ steps.sha.outputs.sha7 }}
+            CREATED=${{ steps.time.outputs.time }}
+            VERSION=$${{ github.ref }}
