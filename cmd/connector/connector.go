@@ -78,8 +78,8 @@ func (gc *gerritChecker) ListCheckers() ([]*gerrit.CheckerInfo, error) {
 // PostChecker creates or changes a checker. It sets up a checker on
 // the given repo, for the given prefix.
 func (gc *gerritChecker) PostChecker(repo, prefix string, update bool) (*gerrit.CheckerInfo, error) {
-	hash := sha1.New()
-	hash.Write([]byte(repo))
+	hash := sha1.New() //nolint
+	hash.Write([]byte(repo)) //nolint
 
 	uuid := fmt.Sprintf("%s:%s-%x", checkerScheme, prefix, hash.Sum(nil))
 	in := gerrit.CheckerInput{
@@ -158,7 +158,7 @@ func (c *gerritChecker) checkChange(uuid string, repository string, changeID str
 	}
 	body := bytes.NewReader(payloadBytes)
 
-	log.Printf("body: %s", body)
+	log.Printf("body: %v", body)
 
 	req, err := http.NewRequest("POST", EventListenerURL, body)
 	if err != nil {
@@ -174,9 +174,9 @@ func (c *gerritChecker) checkChange(uuid string, repository string, changeID str
 	defer resp.Body.Close()
 
 	var msgs []string
-	msgs = append(msgs, fmt.Sprintf("%s", "Job has been submitted to tekton"))
-	var details string
-	details = ""
+	msgs = append(msgs, fmt.Sprintf("%s", "Job has been submitted to tekton")) //nolint
+	var details string //nolint
+	details = "" //nolint
 	return msgs, details, nil
 }
 
