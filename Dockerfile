@@ -24,7 +24,7 @@ RUN go build -tags netgo -o jarvis-connector ./cmd/connector
 FROM alpine:latest as connector
 
 # Add required packages for jarvis-project useage
-RUN apk --no-cache add ca-certificates curl openssh-client
+RUN apk --no-cache add ca-certificates curl openssh-client git
 
 # Copy the Pre-built binary file from the previous stage
 COPY --from=builder /app/jarvis-connector /usr/bin/jarvis-connector
