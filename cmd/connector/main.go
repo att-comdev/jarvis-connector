@@ -111,7 +111,7 @@ func main() {
 			log.Fatalf("must set --prefix")
 		}
 
-		ch, err := gc.PostChecker(repo, prefix, update, blocking)
+		ch, err := gc.PostChecker(repo, prefix, update, blocking) //nolint
 		if err != nil {
 			log.Fatalf("CreateChecker: %v", err)
 		}

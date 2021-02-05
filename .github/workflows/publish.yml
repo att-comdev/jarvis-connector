@@ -1,0 +1,44 @@
+name: Quay Image Push
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  push:
+    branches: [ main ]
+
+jobs:
+  push_to_registry:
+    name: Push Docker image to Quay.io
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Get short SHA
+        id: sha
+        run: |
+          echo ::set-output name=sha7::$(git rev-parse --short=7 ${{ github.sha }})
+      - name: Get current time
+        id: time
+        run: |
+          echo ::set-output name=time::$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to Quay Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: |
+            quay.io/dannymassa/testrepo:latest
+            quay.io/dannymassa/testrepo:${{ steps.sha.outputs.sha7 }}
+          build-args: |
+            REVISION=${{ github.sha }}
+            SHORT_SHA=${{ steps.sha.outputs.sha7 }}
+            CREATED=${{ steps.time.outputs.time }}
+            VERSION=$${{ github.ref }}
