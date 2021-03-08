@@ -333,7 +333,7 @@ func (s *Server) CallPipeline(patchset *PendingSubmitInfo) error {
 	EventListenerURL := "http://el-jarvis-system.jarvis-system.svc:8080"
 
 	data := TektonMergePayload{
-		RepoRoot:       "http://gerrit.jarvis.local/",
+		RepoRoot:       "http://gerrit.jarvis.local",
 		Project:        patchset.Project,
 		ChangeNumber:   strconv.Itoa(patchset.ChangeNumber),
 		PatchSetNumber: strconv.Itoa(patchset.PatchsetNumber),
