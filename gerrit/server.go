@@ -226,7 +226,18 @@ func (s *Server) PostCheck(changeID string, psID int, input *CheckInput) (*Check
 func (s *Server) HandleSubmissions() error {
 	u := s.URL
 
-	u.Path = path.Join(u.Path, "a/changes/?o=SUBMITTABLE&o=ALL_REVISIONS&q=is:open")
+	u.Path = path.Join(u.Path, "a/changes/") + "/"
+	req, err := http.NewRequest("GET", "http://gerrit.jarvis.local", nil)
+	if err != nil {
+		log.Printf("Error Line 232 of Server.go, something is wrong with request")
+		return err
+	}
+	q := req.URL.Query()
+	q.Add("o", "SUBMITTABLE")
+	q.Add("o", "ALL_REVISIONS")
+	q.Add("q", "is:open")
+	u.RawQuery= q.Encode()
+
 	content, err := s.Get(&u)
 	if err != nil {
 		return err
