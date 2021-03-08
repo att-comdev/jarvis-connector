@@ -227,6 +227,7 @@ func (s *Server) HandleSubmissions() error {
 	u := s.URL
 
 	u.Path = path.Join(u.Path, "a/changes/?o=SUBMITTABLE&o=ALL_REVISIONS&q=is:open")
+
 	content, err := s.Get(&u)
 	if err != nil {
 		return err
@@ -238,6 +239,7 @@ func (s *Server) HandleSubmissions() error {
 	}
 
 	var patchsets []*PendingSubmitInfo
+
 	for i := 0; i < len(out); i++ {
 		// Ignore merge conflicts, patchsets without required labels, and patchsets currently being handled by Jarvis
 		if out[i].Mergeable == true && out[i].Subittable == true && !contains(out[i].Hashtags, JarvisMergeHashtag) {
@@ -315,6 +317,7 @@ func (s *Server) PostHashtag(patchset *PendingSubmitInfo) error {
 
 func (s *Server) CallPipeline(patchset *PendingSubmitInfo) error {
 	EventListenerURL := "http://el-jarvis-system.jarvis-system.svc:8080"
+
 	data := TektonMergePayload{
 		RepoRoot:       "http://gerrit.jarvis.local/",
 		Project:        patchset.Project,
