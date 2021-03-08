@@ -316,7 +316,7 @@ func (s *Server) PostHashtag(patchset *PendingSubmitInfo) error {
 }
 
 func (s *Server) CallPipeline(patchset *PendingSubmitInfo) error {
-	EventListenerURL := "https://gerrit.jarvis.local/"
+	EventListenerURL := "http://el-jarvis-system.jarvis-system.svc:8080"
 
 	data := TektonMergePayload{
 		RepoRoot:       "http://gerrit.jarvis.local/",
