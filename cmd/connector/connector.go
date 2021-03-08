@@ -187,22 +187,29 @@ func (c *gerritChecker) pendingLoop() {
 		// TODO: real rate limiting.
 		time.Sleep(10 * time.Second)
 
+		// Handle Checks
 		pending, err := c.server.PendingChecksByScheme(checkerScheme)
-		if err != nil {
+		if err == nil {
 			log.Printf("PendingChecksByScheme: %v", err)
-			continue
-		}
-
-		if len(pending) == 0 {
-			log.Printf("no pending checks")
-		}
-
-		for _, pc := range pending {
-			select {
-			case c.todo <- pc:
-			default:
-				log.Println("too busy; dropping pending check.")
+			if len(pending) == 0 {
+				log.Printf("no pending checks")
 			}
+
+			for _, pc := range pending {
+				select {
+				case c.todo <- pc:
+				default:
+					log.Println("too busy; dropping pending check.")
+				}
+			}
+		} else {
+			log.Printf("PendingChecksByScheme: %v", err)
+		}
+
+		// Handle Integration
+		err = c.server.HandleSubmissions()
+		if err != nil {
+			log.Printf("HandleSubmissions: %v", err)
 		}
 	}
 }
