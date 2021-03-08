@@ -236,7 +236,7 @@ func (s *Server) HandleSubmissions() error {
 	q.Add("o", "SUBMITTABLE")
 	q.Add("o", "ALL_REVISIONS")
 	q.Add("q", "is:open")
-	u.RawQuery= q.Encode()
+	u.RawQuery = q.Encode()
 
 
 	content, err := s.Get(&u)
@@ -257,6 +257,8 @@ func (s *Server) HandleSubmissions() error {
 			patchsets = append(patchsets, out[i])
 		}
 	}
+
+	log.Printf("Sending %d patch sets to merge", len(patchsets))
 
 	for _, obj := range patchsets {
 
@@ -281,6 +283,7 @@ type PendingSubmitInfo struct {
 	Branch          string    `json:"branch"`
 	Hashtags        []string  `json:"hashtags"`
 	ChangeId        string    `json:"change_id"`
+	ChangeNumber    int       `json:"_number"`
 	Subject         string    `json:"subject"`
 	Status          string    `json:"status"`
 	Created         Timestamp `json:"created"`
@@ -332,7 +335,7 @@ func (s *Server) CallPipeline(patchset *PendingSubmitInfo) error {
 	data := TektonMergePayload{
 		RepoRoot:       "http://gerrit.jarvis.local/",
 		Project:        patchset.Project,
-		ChangeNumber:   patchset.ChangeId,
+		ChangeNumber:   strconv.Itoa(patchset.ChangeNumber),
 		PatchSetNumber: strconv.Itoa(patchset.PatchsetNumber),
 	}
 	payloadBytes, err := json.Marshal(data)
