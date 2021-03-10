@@ -238,7 +238,6 @@ func (s *Server) HandleSubmissions() error {
 	q.Add("q", "is:open")
 	u.RawQuery = q.Encode()
 
-
 	content, err := s.Get(&u)
 	if err != nil {
 		return err
@@ -278,22 +277,22 @@ func (s *Server) HandleSubmissions() error {
 }
 
 type PendingSubmitInfo struct {
-	Id              string    `json:"id"`
-	Project         string    `json:"project"`
-	Branch          string    `json:"branch"`
-	Hashtags        []string  `json:"hashtags"`
-	ChangeId        string    `json:"change_id"`
-	ChangeNumber    int       `json:"_number"`
-	Subject         string    `json:"subject"`
-	Status          string    `json:"status"`
-	Created         Timestamp `json:"created"`
-	Updated         Timestamp `json:"updated"`
-	SubmitType      string    `json:"submit_type"`
-	Mergeable       bool      `json:"mergeable"`
-	Subittable      bool      `json:"submittable"`
-	PatchsetNumber  int
+	Id              string                 `json:"id"`
+	Project         string                 `json:"project"`
+	Branch          string                 `json:"branch"`
+	Hashtags        []string               `json:"hashtags"`
+	ChangeId        string                 `json:"change_id"`
+	ChangeNumber    int                    `json:"_number"`
+	Subject         string                 `json:"subject"`
+	Status          string                 `json:"status"`
+	Created         Timestamp              `json:"created"`
+	Updated         Timestamp              `json:"updated"`
+	SubmitType      string                 `json:"submit_type"`
+	Mergeable       bool                   `json:"mergeable"`
+	Subittable      bool                   `json:"submittable"`
 	CurrentRevision string                 `json:"current_revision"`
 	Revisions       map[string]interface{} `json:"revisions"`
+	PatchsetNumber  int
 }
 
 type HashtagPayload struct {
@@ -306,6 +305,7 @@ type TektonMergePayload struct {
 	Project        string `json:"project"`
 	ChangeNumber   string `json:"changeNumber"`
 	PatchSetNumber string `json:"patchSetNumber"`
+	CheckerUUID	   string `json:"checkerUUID"`
 }
 
 func (s *Server) PostHashtag(patchset *PendingSubmitInfo) error {
@@ -332,11 +332,17 @@ func (s *Server) PostHashtag(patchset *PendingSubmitInfo) error {
 func (s *Server) CallPipeline(patchset *PendingSubmitInfo) error {
 	EventListenerURL := "http://el-jarvis-system.jarvis-system.svc:8080"
 
+	checkerUUID, err := s.getChecker(patchset.Project)
+	if err != nil {
+		log.Printf("error finding relevant checker UUID: %v", err)
+	}
+
 	data := TektonMergePayload{
 		RepoRoot:       "http://gerrit.jarvis.local",
 		Project:        patchset.Project,
 		ChangeNumber:   strconv.Itoa(patchset.ChangeNumber),
 		PatchSetNumber: strconv.Itoa(patchset.PatchsetNumber),
+		CheckerUUID:	checkerUUID,
 	}
 	payloadBytes, err := json.Marshal(data)
 	if err != nil {
@@ -357,6 +363,27 @@ func (s *Server) CallPipeline(patchset *PendingSubmitInfo) error {
 	defer resp.Body.Close()
 
 	return nil
+}
+
+// TODO - Warning: This method assumes only one checker exists per repository.
+func (s *Server) getChecker(repository string) (string, error) {
+	content, err := s.GetPath("a/plugins/checks/checkers/")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var out []*CheckerInfo
+	if err := Unmarshal(content, &out); err != nil {
+		return "", err
+	}
+
+	for i := 0; i < len(out); i++ {
+		// Ignore merge conflicts, patchsets without required labels, and patchsets currently being handled by Jarvis
+		if out[i].Repository == repository {
+			return out[i].UUID, nil
+		}
+	}
+
+	return "", nil
 }
 
 func contains(list []string, element string) bool {
