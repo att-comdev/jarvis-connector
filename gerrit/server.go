@@ -21,17 +21,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
+)
+
+const (
+	JarvisMergeHashtag string = "jarvis-merge"
 )
 
 // Server represents a single Gerrit host.
 type Server struct {
-	UserAgent string
-	URL       url.URL
-	Client    http.Client
+	UserAgent        string
+	URL              url.URL
+	EventListenerURL url.URL
+	Client           http.Client
 
 	// Issue trace requests.
 	Debug bool
@@ -215,4 +222,171 @@ func (s *Server) PostCheck(changeID string, psID int, input *CheckInput) (*Check
 	}
 
 	return &out, nil
+}
+
+func (s *Server) HandleSubmissions() error {
+	u := s.URL
+
+	u.Path = path.Join(u.Path, "a/changes/") + "/"
+	q := u.Query()
+	q.Add("o", "SUBMITTABLE")
+	q.Add("o", "ALL_REVISIONS")
+	q.Add("q", "is:open")
+	u.RawQuery = q.Encode()
+
+	content, err := s.Get(&u)
+	if err != nil {
+		return err
+	}
+
+	var out []*PendingSubmitInfo
+	if err := Unmarshal(content, &out); err != nil {
+		return err
+	}
+
+	var patchsets []*PendingSubmitInfo
+
+	for i := 0; i < len(out); i++ {
+		// Ignore merge conflicts, patchsets without required labels, and patchsets currently being handled by Jarvis
+		if out[i].Mergeable == true && out[i].Subittable == true && !contains(out[i].Hashtags, JarvisMergeHashtag) {
+			patchsets = append(patchsets, out[i])
+		}
+	}
+
+	log.Printf("Sending %d patch sets to merge", len(patchsets))
+
+	for _, obj := range patchsets {
+
+		// Find the patch set number by checking the number of revisions that have been make to the change
+		obj.PatchsetNumber = len(obj.Revisions)
+
+		if err = s.PostHashtag(obj); err != nil {
+			log.Printf("PostHashtag Error: %v", err)
+			return err
+		}
+
+		if err = s.CallPipeline(obj); err != nil {
+			log.Printf("CallPipeline Error: %v", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+type PendingSubmitInfo struct {
+	Id              string                 `json:"id"`
+	Project         string                 `json:"project"`
+	Branch          string                 `json:"branch"`
+	Hashtags        []string               `json:"hashtags"`
+	ChangeId        string                 `json:"change_id"`
+	ChangeNumber    int                    `json:"_number"`
+	Subject         string                 `json:"subject"`
+	Status          string                 `json:"status"`
+	Created         Timestamp              `json:"created"`
+	Updated         Timestamp              `json:"updated"`
+	SubmitType      string                 `json:"submit_type"`
+	Mergeable       bool                   `json:"mergeable"`
+	Subittable      bool                   `json:"submittable"`
+	CurrentRevision string                 `json:"current_revision"`
+	Revisions       map[string]interface{} `json:"revisions"`
+	PatchsetNumber  int
+}
+
+type HashtagPayload struct {
+	Add    []string `json:"add"`
+	Remove []string `json:"remove"`
+}
+
+type TektonMergePayload struct {
+	RepoRoot       string `json:"repoRoot"`
+	Project        string `json:"project"`
+	ChangeNumber   string `json:"changeNumber"`
+	PatchSetNumber string `json:"patchSetNumber"`
+	CheckerUUID    string `json:"checkerUUID"`
+}
+
+func (s *Server) PostHashtag(patchset *PendingSubmitInfo) error {
+	u := s.URL
+	u.Path = path.Join(u.Path, fmt.Sprintf("a/changes/%s/hashtags/", patchset.ChangeId)) + "/"
+	hashtagPayload := HashtagPayload{
+		Add:    []string{JarvisMergeHashtag},
+		Remove: []string{},
+	}
+	body, err := json.Marshal(hashtagPayload)
+	if err != nil {
+		return err
+	}
+	_, err = s.PostPath(u.Path, "application/json", body)
+	if err != nil {
+		// return err
+		log.Printf("Error: %v", err)
+	}
+
+	return nil
+}
+
+func (s *Server) CallPipeline(patchset *PendingSubmitInfo) error {
+	checkerUUID, err := s.getChecker(patchset.Project)
+	if err != nil {
+		log.Printf("error finding relevant checker UUID: %v", err)
+	}
+
+	data := TektonMergePayload{
+		RepoRoot:       s.URL.String() + "/",
+		Project:        patchset.Project,
+		ChangeNumber:   strconv.Itoa(patchset.ChangeNumber),
+		PatchSetNumber: strconv.Itoa(patchset.PatchsetNumber),
+		CheckerUUID:    checkerUUID,
+	}
+	payloadBytes, err := json.Marshal(data)
+	if err != nil {
+		log.Printf("error marshalling request object: %v", err)
+	}
+	body := bytes.NewReader(payloadBytes)
+	req, err := http.NewRequest("POST", s.EventListenerURL.String(), body)
+	if err != nil {
+		log.Printf("error building request for Gerrit: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Jarvis", "merge")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("error sending request to Gerrit: %v", err)
+	}
+	defer resp.Body.Close()
+
+	return nil
+}
+
+// TODO - Warning: This method assumes only one checker exists per repository.
+func (s *Server) getChecker(repository string) (string, error) {
+	content, err := s.GetPath("a/plugins/checks/checkers/")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var out []*CheckerInfo
+	if err := Unmarshal(content, &out); err != nil {
+		return "", err
+	}
+
+	for i := 0; i < len(out); i++ {
+		// Ignore merge conflicts, patchsets without required labels, and patchsets currently being handled by Jarvis
+		if out[i].Repository == repository {
+			return out[i].UUID, nil
+		}
+	}
+
+	return "", nil
+}
+
+func contains(list []string, element string) bool {
+	for _, obj := range list {
+		if obj == element {
+			return true
+		}
+	}
+
+	return false
 }
