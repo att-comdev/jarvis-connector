@@ -120,10 +120,12 @@ func main() {
 			log.Fatal("must set --event_listener")
 		}
 
-		_, err = url.Parse(EventListenerURL)
+		el, err := url.Parse(EventListenerURL)
 		if err != nil {
 			log.Fatalf("url.Parse: %v", err)
 		}
+
+		gc.server.EventListenerURL = *el
 	}
 
 	gc.Serve()
