@@ -229,6 +229,7 @@ func (s *Server) HandleSubmissions() error {
 
 	u.Path = path.Join(u.Path, "a/changes/") + "/"
 	q := u.Query()
+
 	q.Add("o", "SUBMITTABLE")
 	q.Add("o", "ALL_REVISIONS")
 	q.Add("q", "is:open")
