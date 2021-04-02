@@ -16,13 +16,14 @@
 package main
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
 
-	"github.com/att-comdev/jarvis-connector/gerrit"
+	"github.com/att-comdev/jarvis-connector/cmd/connector/controllers"
+	"github.com/att-comdev/jarvis-connector/services"
+
 	flag "github.com/spf13/pflag"
 )
 
@@ -40,6 +41,7 @@ var (
 )
 
 func main() {
+	// define and parse incoming flags
 	flag.StringVar(&GerritURL, "gerrit", "", "URL to gerrit host")
 	flag.StringVar(&EventListenerURL, "event_listener", "", "URL of the Tekton EventListener")
 	flag.BoolVar(&register, "register", false, "Register the connector with gerrit")
@@ -47,13 +49,17 @@ func main() {
 	flag.BoolVar(&list, "list", false, "List pending checks")
 	flag.StringVar(&authFile, "auth_file", "", "file containing user:password")
 	flag.StringVar(&repo, "repo", "", "the repository (project) name to apply the checker to.")
-	flag.StringVar(&prefix, "prefix", "", "the prefix that the checker should use for jobs, this is also used as the job name in gerrit.")
+	flag.StringVar(
+		&prefix,
+		"prefix",
+		"",
+		"the prefix that the checker should use for jobs, this is also used as the job name in gerrit.")
 	flag.Parse()
+
 	if GerritURL == "" {
 		log.Fatal("must set --gerrit")
 	}
-
-	u, err := url.Parse(GerritURL)
+	gerritURLObj, err := url.Parse(GerritURL)
 	if err != nil {
 		log.Fatalf("url.Parse: %v", err)
 	}
@@ -61,46 +67,22 @@ func main() {
 	if authFile == "" {
 		log.Fatal("must set --auth_file")
 	}
-
-	g := gerrit.New(*u)
-
-	g.UserAgent = "JarvisConnector"
-
-	if authFile != "" {
-		content, err := ioutil.ReadFile(authFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		g.Authenticator = gerrit.NewBasicAuth(string(content))
-	}
-
-	// Do a GET first to complete any cookie dance, because POST
-	// aren't redirected properly. Also, this avoids spamming logs with
-	// failure messages.
-	if _, err := g.GetPath("a/accounts/self"); err != nil {
-		log.Fatalf("accounts/self: %v", err)
-	}
-
-	gc, err := NewGerritChecker(g)
+	authFileContent, err := ioutil.ReadFile(authFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if list {
-		if out, err := gc.ListCheckers(); err != nil {
-			log.Fatalf("List: %v", err)
-		} else {
-			for _, ch := range out {
-				json, _ := json.Marshal(ch)
-				os.Stdout.Write(json)
-				os.Stdout.Write([]byte{'\n'})
-			}
+	services.GerritServer.Init(*gerritURLObj, services.NewBasicAuth(string(authFileContent)), "a/accounts/self")
+
+	if list { //nolint
+		err = controllers.Checker.ListCheckers()
+
+		if err != nil {
+			log.Fatalf("ListCheckers: %v", err)
 		}
 
 		os.Exit(0)
-	}
-
-	if register || update {
+	} else if register || update {
 		if repo == "" {
 			log.Fatalf("must set --repo")
 		}
@@ -109,24 +91,26 @@ func main() {
 			log.Fatalf("must set --prefix")
 		}
 
-		ch, err := gc.PostChecker(repo, prefix, update)
+		ch, err := controllers.Checker.PostChecker(repo, prefix, update)
 		if err != nil {
 			log.Fatalf("CreateChecker: %v", err)
 		}
 		log.Printf("CreateChecker result: %v", ch)
+
 		os.Exit(0)
 	} else {
 		if EventListenerURL == "" {
 			log.Fatal("must set --event_listener")
 		}
-
-		el, err := url.Parse(EventListenerURL)
+		eventListenerURLObj, err := url.Parse(EventListenerURL)
 		if err != nil {
-			log.Fatalf("url.Parse: %v", err)
+			log.Fatal(err)
 		}
 
-		gc.server.EventListenerURL = *el
-	}
+		services.EventListenerServer.Init(*eventListenerURLObj, nil, "/")
 
-	gc.Serve()
+		go controllers.Connector.ServeCheck()
+		go controllers.Connector.ServeSubmit()
+		controllers.Connector.PendingLoop()
+	}
 }
