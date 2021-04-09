@@ -1,0 +1,36 @@
+name: CI Checks
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Get short SHA
+        id: sha
+        run: |
+          echo ::set-output name=sha7::$(git rev-parse --short=7 ${{ github.sha }})
+      - name: Get current time
+        id: time
+        run: |
+          echo ::set-output name=time::$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Build Without Pushing
+        uses: docker/build-push-action@v2
+        with:
+          push: false
+          tags: |
+            org/repo:${{ steps.sha.outputs.sha7 }}
+          build-args: |
+            REVISION=${{ github.sha }}
+            SHORT_SHA=${{ steps.sha.outputs.sha7 }}
+            CREATED=${{ steps.time.outputs.time }}
+            VERSION=$${{ github.ref }}
